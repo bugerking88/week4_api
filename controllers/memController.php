@@ -10,15 +10,21 @@ class memController extends PDOConnect
     {
         if (isset($_GET["username"]))
         {
+            $user = $_GET["username"];
+
             $sql = "INSERT INTO `memberList`(`userName`, `balance`)";
             $sql .= "VALUES(:userName, :balance)";
             $money = "100000";
             $result = $this->db->prepare($sql);
             $result->bindParam(':userName', $_GET["username"]);
             $result->bindParam(':balance', $money);
-            $result->execute();
+            if ($result->execute()) {
             $user_info = array("result" => "TRUE", "username" => $_GET["username"]);
             echo json_encode($user_info);
+            } else {
+                $user_info = array("result" => "FALSE", "username" => "repeat");
+                echo json_encode($user_info);
+            }
         } else {
             $user_info = array("result" => "FALSE", "username" => $_GET["username"]);
             echo json_encode($user_info);
@@ -52,12 +58,14 @@ class memController extends PDOConnect
             $user = $_GET["username"];
             $transid = $_GET["transid"];
             $type = $_GET["type"];
-            $amount = $_GET["amount"];
+            $amount = abs($_GET["amount"]);
 
             $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
             $result = $this->db->prepare($sql);
             $result->execute();
             $getBalance = $result->fetchAll();
+
+
 
             if ($type == "OUT") {
 
@@ -77,7 +85,6 @@ class memController extends PDOConnect
                 $result->bindParam(':transid', $transid);
                 $result->bindParam(':userName', $user);
                 $result->bindParam(':status', $status);
-                $result->execute();
             }
             if ($type == "IN") {
 
@@ -97,9 +104,12 @@ class memController extends PDOConnect
                 $result->bindParam(':transid', $transid);
                 $result->bindParam(':userName', $user);
                 $result->bindParam(':status', $status);
-                $result->execute();
             }
+            if (!$result->execute()) {
+            $user_info = array("result" => "false", "message" => "repeat");
+            } else {
             $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getBalance[0]['balance'], "platformB" => $getBalance[0]['platformB']);
+            }
             echo json_encode($user_info);
         } else {
             $sql = "INSERT INTO `memoList`(`transid`, `userName`, `status`)";
