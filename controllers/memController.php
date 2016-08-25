@@ -74,8 +74,8 @@ class memController extends PDOConnect
                 $sql .= "VALUES(:transid, :userName, :status)";
                 $status = "TRUE";
                 $result = $this->db->prepare($sql);
-                $result->bindParam(':transid', $user);
-                $result->bindParam(':userName', $transid);
+                $result->bindParam(':transid', $transid);
+                $result->bindParam(':userName', $user);
                 $result->bindParam(':status', $status);
                 $result->execute();
             }
@@ -94,8 +94,8 @@ class memController extends PDOConnect
                 $sql .= "VALUES(:transid, :userName, :status)";
                 $status = "TRUE";
                 $result = $this->db->prepare($sql);
-                $result->bindParam(':transid', $user);
-                $result->bindParam(':userName', $transid);
+                $result->bindParam(':transid', $transid);
+                $result->bindParam(':userName', $user);
                 $result->bindParam(':status', $status);
                 $result->execute();
             }

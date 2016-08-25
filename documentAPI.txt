@@ -1,16 +1,22 @@
 Rain_Wang
 
+https://github.com/bugerking88/week4_api
+
 1.新增帳號
 
-api名稱 - addUser
+api名稱 - addMember
 
 參數1 - username(帳號)
+
+https://lab-rain-wang.c9users.io/api/mem/addMember?username=yhu
 
 2.取得餘額
 
 api名稱 - getBalance
 
 參數1 - (string)username(帳號)
+
+https://lab-rain-wang.c9users.io/api/mem/getBalance?username=yhu
 
 3.轉帳
 
@@ -24,6 +30,8 @@ api名稱 - transfer
 
 參數4 - (int)amount(轉帳金額)
 
+https://lab-rain-wang.c9users.io/api/mem/transfer?username=yhu&transid=1555&type=IN&amount=100
+
 4.檢查轉帳狀態
 
 api名稱 - checkTransfer
@@ -31,3 +39,5 @@ api名稱 - checkTransfer
 參數1 - (string)username(帳號)
 
 參數2 - (int)transid(轉帳序號)
+
+https://lab-rain-wang.c9users.io/api/mem/checkTransfer?username=22&transid=133
