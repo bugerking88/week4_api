@@ -8,7 +8,7 @@ class memController extends PDOConnect
     //創會員
     public function addMember()
     {
-        if (isset($_GET["username"]))
+        if (isset($_GET["username"]) && ($_GET["username"] != null))
         {
             $user = $_GET["username"];
 
@@ -26,7 +26,7 @@ class memController extends PDOConnect
                 echo json_encode($user_info);
             }
         } else {
-            $user_info = array("result" => "FALSE", "username" => $_GET["username"]);
+            $user_info = array("result" => "FALSE", "errorMessage" => "parameter not enough");
             echo json_encode($user_info);
         }
 
@@ -35,17 +35,28 @@ class memController extends PDOConnect
     //取得餘額
     public function getBalance()
     {
-        if (isset($_GET["username"]))
+        if (isset($_GET["username"]) && ($_GET["username"] != null))
         {
             $user = $_GET["username"];
-            $sql = "SELECT `balance` FROM `memberList` WHERE `userName`="."'".$user."'";
+            $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
             $result = $this->db->prepare($sql);
             $result->execute();
             $getBalance = $result->fetchAll();
-            $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getBalance[0]['balance']);
-            echo json_encode($user_info);
+
+            $sql = "SELECT `userName` FROM `memberList` WHERE `userName`="."'".$user."'";
+            $result = $this->db->prepare($sql);
+            $result->execute();
+            $getUser = $result->fetchAll();
+
+            if ($getUser == null) {
+                $show_wrong = array("result" => "false", "message" => "there is no user");
+                echo json_encode($show_wrong);
+            } else {
+                $user_info = array("result" => "TRUE", "username" => $_GET["username"], "AplatBalance" => $getBalance[0]['balance'], "BplatBalance" => $getBalance[0]['platformB']);
+                echo json_encode($user_info);
+            }
         } else {
-            $user_info = array("result" => "FALSE", "username" => $_GET["username"]);
+            $user_info = array("result" => "FALSE", "errorMessage" => "parameter not enough");
             echo json_encode($user_info);
         }
     }
@@ -59,41 +70,32 @@ class memController extends PDOConnect
             $type = $_GET["type"];
             $amount = $_GET["amount"];
 
-            $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
+            $sql = "SELECT `transid` FROM `memoList`";
             $result = $this->db->prepare($sql);
             $result->execute();
-            $getBalance = $result->fetchAll();
-            if ($type == "OUT") {
-                $Aplat = $getBalance[0]['balance'] - $amount;
-                $Bplat = $getBalance[0]['platformB'] + $amount;
+            $getTransid = $result->fetchAll();
 
-                if ($Aplat >= 0) {
-                $sql2 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
-                $updateBalance = $this->db->prepare($sql2);
-                $updateBalance->bindParam(':balance', $Aplat);
-                $updateBalance->bindParam(':platformB', $Bplat);
-                $updateBalance->execute();
-
-                $sql = "INSERT INTO `memoList`(`transid`, `userName`, `status`)";
-                $sql .= "VALUES(:transid, :userName, :status)";
-                $status = "TRUE";
-                $result = $this->db->prepare($sql);
-                $result->bindParam(':transid', $transid);
-                $result->bindParam(':userName', $user);
-                $result->bindParam(':status', $status);
-                } else {
-                    $user_info = array("result" => "false", "message" => "not enough money");
-                    echo json_encode($user_info);
-                    return;
+            foreach ($getTransid as $value) {
+                foreach ($value as $b){
+                    if ($b == $transid) {
+                        $show_wrong = array("result" => "false", "message" => "transid repeat");
+                        echo json_encode($show_wrong);
+                        exit;
+                    }
                 }
             }
-            if ($type == "IN") {
-                $Aplat = $getBalance[0]['balance'] + $amount;
-                $Bplat = $getBalance[0]['platformB'] - $amount;
 
-                if ($Bplat >= 0) {
-                    $sql3 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
-                    $updateBalance = $this->db->prepare($sql3);
+                $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
+                $result = $this->db->prepare($sql);
+                $result->execute();
+                $getBalance = $result->fetchAll();
+                if ($type == "OUT") {
+                    $Aplat = $getBalance[0]['balance'] - $amount;
+                    $Bplat = $getBalance[0]['platformB'] + $amount;
+
+                    if ($Aplat >= 0) {
+                    $sql2 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
+                    $updateBalance = $this->db->prepare($sql2);
                     $updateBalance->bindParam(':balance', $Aplat);
                     $updateBalance->bindParam(':platformB', $Bplat);
                     $updateBalance->execute();
@@ -105,39 +107,59 @@ class memController extends PDOConnect
                     $result->bindParam(':transid', $transid);
                     $result->bindParam(':userName', $user);
                     $result->bindParam(':status', $status);
-                } else {
-                    $user_info = array("result" => "false", "message" => "not enough money");
+                    $result->execute();
+                    $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
+                    $result = $this->db->prepare($sql);
+                    $result->execute();
+                    $getLastBalance = $result->fetchAll();
+                    $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getLastBalance[0]['balance'], "platformB" => $getLastBalance[0]['platformB']);
                     echo json_encode($user_info);
-                    return;
+                    } else {
+                        $user_info = array("result" => "false", "message" => "not enough money");
+                        echo json_encode($user_info);
+                        return;
+                    }
                 }
-            }
-            if (!$result->execute()) {
-                $user_info = array("result" => "false", "message" => "repeat");
+                if ($type == "IN") {
+                    $Aplat = $getBalance[0]['balance'] + $amount;
+                    $Bplat = $getBalance[0]['platformB'] - $amount;
+
+                    if ($Bplat >= 0) {
+                        $sql3 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
+                        $updateBalance = $this->db->prepare($sql3);
+                        $updateBalance->bindParam(':balance', $Aplat);
+                        $updateBalance->bindParam(':platformB', $Bplat);
+                        $updateBalance->execute();
+
+                        $sql = "INSERT INTO `memoList`(`transid`, `userName`, `status`)";
+                        $sql .= "VALUES(:transid, :userName, :status)";
+                        $status = "TRUE";
+                        $result = $this->db->prepare($sql);
+                        $result->bindParam(':transid', $transid);
+                        $result->bindParam(':userName', $user);
+                        $result->bindParam(':status', $status);
+                        $result->execute();
+                        $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
+                        $result = $this->db->prepare($sql);
+                        $result->execute();
+                        $getLastBalance = $result->fetchAll();
+                        $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getLastBalance[0]['balance'], "platformB" => $getLastBalance[0]['platformB']);
+                        echo json_encode($user_info);
+                    } else {
+                        $user_info = array("result" => "false", "message" => "not enough money");
+                        echo json_encode($user_info);
+                        return;
+                    }
+                }
             } else {
-                $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
-                $result = $this->db->prepare($sql);
-                $result->execute();
-                $getLastBalance = $result->fetchAll();
-                $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getLastBalance[0]['balance'], "platformB" => $getLastBalance[0]['platformB']);
+                $user_info = array("result" => "FALSE", "errorMessage" => "parameter not enough");
+                echo json_encode($user_info);
             }
-            echo json_encode($user_info);
-        } else {
-            $sql = "INSERT INTO `memoList`(`transid`, `userName`, `status`)";
-            $sql .= "VALUES(:transid, :userName, :status)";
-            $status = "FALSE";
-            $result = $this->db->prepare($sql);
-            $result->bindParam(':transid', $user);
-            $result->bindParam(':userName', $transid);
-            $result->bindParam(':status', $status);
-            $result->execute();
-            $user_info = array("result" => "FALSE", "errorMessage" => "SomethingWrong");
-            echo json_encode($user_info);
-        }
     }
 
     //轉帳確認
     public function checkTransfer(){
-         if (isset($_GET["username"]) && isset($_GET["transid"]))
+         if (isset($_GET["username"]) && isset($_GET["transid"]) && ($_GET["username"] != null) && ($_GET["transid"] != null))
          {
             $user = $_GET["username"];
             $transid = $_GET["transid"];
@@ -146,10 +168,15 @@ class memController extends PDOConnect
             $result->execute();
             $getMemo = $result->fetchAll();
 
-            $user_info = array("username" => $user, "transid" => $transid,"status" => $getMemo[0]['status']);
-            echo json_encode($user_info);
+            if ($getMemo == null) {
+                $user_info = array("result" => "FALSE", "username" => $_GET["username"], "status" => "Not found Transaction.");
+                echo json_encode($user_info);
+            } else {
+                $user_info = array("result" => "TRUE", "username" => $user, "transid" => $transid,"status" => $getMemo[0]['status']);
+                echo json_encode($user_info);
+            }
         } else {
-            $user_info = array("result" => "FALSE", "username" => $_GET["username"], "status" => "Not found Transaction.");
+            $user_info = array("result" => "FALSE", "errorMessage" => "parameter not enough");
             echo json_encode($user_info);
         }
     }
