@@ -53,25 +53,21 @@ class memController extends PDOConnect
     //轉帳
     public function transfer()
     {
-        if (isset($_GET["username"]) && isset($_GET["transid"]) && isset($_GET["type"]) && isset($_GET["amount"]))
-        {
+        if (isset($_GET["username"]) && isset($_GET["transid"]) && isset($_GET["type"]) && isset($_GET["amount"])) {
             $user = $_GET["username"];
             $transid = $_GET["transid"];
             $type = $_GET["type"];
-            $amount = abs($_GET["amount"]);
+            $amount = $_GET["amount"];
 
             $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
             $result = $this->db->prepare($sql);
             $result->execute();
             $getBalance = $result->fetchAll();
-
-
-
             if ($type == "OUT") {
-
                 $Aplat = $getBalance[0]['balance'] - $amount;
                 $Bplat = $getBalance[0]['platformB'] + $amount;
 
+                if ($Aplat >= 0) {
                 $sql2 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
                 $updateBalance = $this->db->prepare($sql2);
                 $updateBalance->bindParam(':balance', $Aplat);
@@ -85,30 +81,44 @@ class memController extends PDOConnect
                 $result->bindParam(':transid', $transid);
                 $result->bindParam(':userName', $user);
                 $result->bindParam(':status', $status);
+                } else {
+                    $user_info = array("result" => "false", "message" => "not enough money");
+                    echo json_encode($user_info);
+                    return;
+                }
             }
             if ($type == "IN") {
-
                 $Aplat = $getBalance[0]['balance'] + $amount;
                 $Bplat = $getBalance[0]['platformB'] - $amount;
 
-                $sql3 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
-                $updateBalance = $this->db->prepare($sql3);
-                $updateBalance->bindParam(':balance', $Aplat);
-                $updateBalance->bindParam(':platformB', $Bplat);
-                $updateBalance->execute();
+                if ($Bplat >= 0) {
+                    $sql3 = "UPDATE `memberList` SET `balance` = :balance , `platformB` = :platformB WHERE `userName`="."'".$user."'";
+                    $updateBalance = $this->db->prepare($sql3);
+                    $updateBalance->bindParam(':balance', $Aplat);
+                    $updateBalance->bindParam(':platformB', $Bplat);
+                    $updateBalance->execute();
 
-                $sql = "INSERT INTO `memoList`(`transid`, `userName`, `status`)";
-                $sql .= "VALUES(:transid, :userName, :status)";
-                $status = "TRUE";
-                $result = $this->db->prepare($sql);
-                $result->bindParam(':transid', $transid);
-                $result->bindParam(':userName', $user);
-                $result->bindParam(':status', $status);
+                    $sql = "INSERT INTO `memoList`(`transid`, `userName`, `status`)";
+                    $sql .= "VALUES(:transid, :userName, :status)";
+                    $status = "TRUE";
+                    $result = $this->db->prepare($sql);
+                    $result->bindParam(':transid', $transid);
+                    $result->bindParam(':userName', $user);
+                    $result->bindParam(':status', $status);
+                } else {
+                    $user_info = array("result" => "false", "message" => "not enough money");
+                    echo json_encode($user_info);
+                    return;
+                }
             }
             if (!$result->execute()) {
-            $user_info = array("result" => "false", "message" => "repeat");
+                $user_info = array("result" => "false", "message" => "repeat");
             } else {
-            $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getBalance[0]['balance'], "platformB" => $getBalance[0]['platformB']);
+                $sql = "SELECT `balance`,`platformB` FROM `memberList` WHERE `userName`="."'".$user."'";
+                $result = $this->db->prepare($sql);
+                $result->execute();
+                $getLastBalance = $result->fetchAll();
+                $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getLastBalance[0]['balance'], "platformB" => $getLastBalance[0]['platformB']);
             }
             echo json_encode($user_info);
         } else {
