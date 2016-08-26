@@ -115,7 +115,7 @@ class memController extends PDOConnect
                     $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getLastBalance[0]['balance'], "platformB" => $getLastBalance[0]['platformB']);
                     echo json_encode($user_info);
                     } else {
-                        $user_info = array("result" => "false", "message" => "not enough money");
+                        $user_info = array("result" => "false", "message" => "A platform not enough money");
                         echo json_encode($user_info);
                         return;
                     }
@@ -146,7 +146,7 @@ class memController extends PDOConnect
                         $user_info = array("result" => "TRUE", "username" => $_GET["username"], "balance" => $getLastBalance[0]['balance'], "platformB" => $getLastBalance[0]['platformB']);
                         echo json_encode($user_info);
                     } else {
-                        $user_info = array("result" => "false", "message" => "not enough money");
+                        $user_info = array("result" => "false", "message" => "B platform not enough money");
                         echo json_encode($user_info);
                         return;
                     }
